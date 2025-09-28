@@ -1,9 +1,8 @@
 function displayOutput(data) {
     const output = document.getElementById('output');
-
-    // Verifică dacă datele sunt un array pentru a le afișa într-un tabel
     if (Array.isArray(data)) {
         const table = document.createElement('table');
+        table.className = 'data-table';
 
         // Creare header
         if (data.length > 0) {
@@ -16,7 +15,6 @@ function displayOutput(data) {
             table.appendChild(headerRow);
         }
 
-        // Creare rânduri cu date
         data.forEach(row => {
             const tr = document.createElement('tr');
             Object.values(row).forEach(value => {
@@ -30,25 +28,107 @@ function displayOutput(data) {
         output.innerHTML = '';
         output.appendChild(table);
     } else {
-        output.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+        const formattedOutput = typeof data === 'object'
+            ? JSON.stringify(data, null, 2)
+            : data.toString();
+        output.innerHTML = `<pre>${formattedOutput}</pre>`;
     }
 }
 
 async function listTable() {
     const tableName = prompt('Introduceți numele tabelului:');
-    const sortColumn = prompt('Introduceți coloana pentru sortare:');
-    const sortOrder = prompt('Introduceți ordinea (ASC/DESC):');
+
+    if (!tableName) {
+        showError('Numele tabelului este obligatoriu!');
+        return;
+    }
 
     try {
-        const response = await fetch('/list-table', {
+        const response = await fetch('/list-table-simple', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tableName }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error);
+        displayOutput(data.data);
+    } catch (error) {
+        showError('Eroare la listarea tabelului: ' + error.message);
+    }
+}
+
+async function listSortedTable() {
+    const tableName = prompt('Introduceți numele tabelului:');
+    const sortColumn = prompt('Introduceți coloana pentru sortare:');
+    const sortOrder = prompt('Introduceți ordinea (ASC/DESC):').toUpperCase();
+
+    if (!tableName || !sortColumn || !sortOrder) {
+        showError('Toate câmpurile sunt obligatorii!');
+        return;
+    }
+
+    try {
+        const response = await fetch('/list-sort-table', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ tableName, sortColumn, sortOrder }),
         });
         const data = await response.json();
+        if (!response.ok) throw new Error(data.error);
         displayOutput(data);
     } catch (error) {
-        showError('Eroare la listarea tabelului: ' + error.message);
+        showError('Eroare la listarea tabelului sortat: ' + error.message);
+    }
+}
+
+async function deleteRecord() {
+    const tableName = prompt('Introduceți numele tabelului:');
+    const primaryKeyColumn = prompt('Introduceți numele coloanei cheie primare:');
+    const primaryKeyValue = prompt('Introduceți valoarea cheii primare:');
+
+    if (!tableName || !primaryKeyColumn || !primaryKeyValue) {
+        showError('Toate câmpurile sunt obligatorii!');
+        return;
+    }
+
+    const validTables = ['UTILIZATOR', 'MELODIE', 'ALBUM', 'ALBUM_PERSONALIZAT', 'ARTIST', 'ABONAMENT', 'GEN', 'CASA_DE_DISCURI'];
+    if (!validTables.includes(tableName.toUpperCase())) {
+        showError('Numele tabelului nu este valid!');
+        return;
+    }
+
+    try {
+        const response = await fetch('/delete-with-cascade', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                tableName,
+                primaryKeyColumn,
+                primaryKeyValue
+            }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            if (response.status === 400) {
+                showError('Date incomplete trimise către server.');
+            } else if (response.status === 404) {
+                showError('Înregistrarea specificată nu a fost găsită.');
+            } else {
+                showError(`Eroare la ștergerea înregistrării: ${data.error || 'Eroare necunoscută.'}`);
+            }
+            return;
+        }
+
+        if (data.success) {
+            showSuccess(`Înregistrare ștearsă cu succes! ${data.rowsAffected} înregistrări au fost șterse în cascadă.`);
+            displayOutput(data);
+        } else {
+            showError(`Eroare la ștergerea înregistrării: ${data.error || 'Eroare necunoscută.'}`);
+        }
+    } catch (error) {
+        showError('Eroare la ștergerea înregistrării: ' + error.message);
     }
 }
 
@@ -59,6 +139,11 @@ async function updateRecord() {
     const columnToUpdate = prompt('Introduceți numele coloanei de modificat:');
     const newValue = prompt('Introduceți noua valoare:');
 
+    if (!tableName || !idColumn || !idValue || !columnToUpdate || newValue === null) {
+        showError('Toate câmpurile sunt obligatorii!');
+        return;
+    }
+
     try {
         const response = await fetch('/update-record', {
             method: 'POST',
@@ -66,6 +151,7 @@ async function updateRecord() {
             body: JSON.stringify({ tableName, idColumn, idValue, columnToUpdate, newValue }),
         });
         const data = await response.json();
+        if (!response.ok) throw new Error(data.error);
         displayOutput(data);
         showSuccess('Înregistrare actualizată cu succes!');
     } catch (error) {
@@ -73,31 +159,13 @@ async function updateRecord() {
     }
 }
 
-async function deleteRecord() {
-    const tableName = prompt('Introduceți numele tabelului:');
-    const idColumn = prompt('Introduceți coloana ID:');
-    const idValue = prompt('Introduceți valoarea ID-ului:');
-
-    try {
-        const response = await fetch('/delete-record', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tableName, idColumn, idValue }),
-        });
-        const data = await response.json();
-        displayOutput(data);
-        showSuccess('Înregistrare ștearsă cu succes!');
-    } catch (error) {
-        showError('Eroare la ștergerea înregistrării: ' + error.message);
-    }
-}
-
-// Funcții noi pentru cerințele adăugate
 async function complexQuery() {
     try {
         const response = await fetch('/complex-query');
         const data = await response.json();
+        if (!response.ok) throw new Error(data.error);
         displayOutput(data);
+        showSuccess('Interogare complexă executată cu succes!');
     } catch (error) {
         showError('Eroare la executarea interogării complexe: ' + error.message);
     }
@@ -107,27 +175,36 @@ async function artistStatistics() {
     try {
         const response = await fetch('/artist-statistics');
         const data = await response.json();
+        if (!response.ok) throw new Error(data.error);
         displayOutput(data);
+        showSuccess('Statistici generate cu succes!');
     } catch (error) {
         showError('Eroare la generarea statisticilor: ' + error.message);
     }
 }
 
-async function viewMelodiiRecente() {
+async function melodiiRecente() {
     try {
-        const response = await fetch('/view-melodii-recente');
+        const response = await fetch('/melodii-recente', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+        });
         const data = await response.json();
+        if (!response.ok) throw new Error(data.error);
         displayOutput(data);
+        showSuccess('Melodii recente afișate cu succes!');
     } catch (error) {
-        showError('Eroare la accesarea vizualizării: ' + error.message);
+        showError('Eroare la accesarea melodiilor recente: ' + error.message);
     }
 }
 
-async function viewStatisticiGen() {
+async function statisticiGen() {
     try {
-        const response = await fetch('/view-statistici-gen');
+        const response = await fetch('/statistici-gen');
         const data = await response.json();
+        if (!response.ok) throw new Error(data.error);
         displayOutput(data);
+        showSuccess('Statistici pe genuri generate cu succes!');
     } catch (error) {
         showError('Eroare la accesarea statisticilor pe genuri: ' + error.message);
     }

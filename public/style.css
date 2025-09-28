@@ -7,7 +7,6 @@ body {
     color: #333;
 }
 
-
 header {
     background-color: #6200ea;
     color: #fff;
@@ -46,6 +45,7 @@ header h1 {
     display: flex;
     gap: 1rem;
     flex-wrap: wrap;
+    justify-content: flex-start;
 }
 
 button {
@@ -56,11 +56,20 @@ button {
     border-radius: 6px;
     cursor: pointer;
     font-size: 1rem;
-    transition: background-color 0.3s ease;
+    transition: all 0.3s ease;
+    flex: 0 1 auto;
+    min-width: 200px;
 }
 
 button:hover {
     background-color: #800080;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+button:active {
+    transform: translateY(0);
 }
 
 #output-container {
@@ -82,29 +91,42 @@ button:hover {
     overflow-x: auto;
 }
 
-table {
+.data-table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 1rem;
 }
 
-th, td {
+.data-table th,
+.data-table td {
     text-align: left;
     padding: 0.75rem;
     border: 1px solid #ddd;
 }
 
-th {
+.data-table th {
     background-color: #6200ea;
     color: #fff;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
 }
 
-tr:nth-child(even) {
+.data-table tr:nth-child(even) {
     background-color: #f8f8f8;
 }
 
-tr:hover {
+.data-table tr:hover {
     background-color: #f0f0f0;
+}
+
+pre {
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 4px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    font-family: 'Consolas', monospace;
 }
 
 .alert {
@@ -112,6 +134,12 @@ tr:hover {
     margin-bottom: 1rem;
     border-radius: 4px;
     font-weight: 500;
+    animation: slideIn 0.3s ease-out;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    max-width: 400px;
 }
 
 .alert-error {
@@ -126,6 +154,17 @@ tr:hover {
     border: 1px solid #bbf7d0;
 }
 
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
 @media (max-width: 768px) {
     .button-group {
         flex-direction: column;
@@ -133,5 +172,31 @@ tr:hover {
 
     button {
         width: 100%;
+        min-width: unset;
+    }
+
+    .data-table {
+        font-size: 0.9rem;
+    }
+
+    .alert {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: unset;
+    }
+}
+
+@media (max-width: 480px) {
+    header h1 {
+        font-size: 1.5rem;
+    }
+
+    .section h2 {
+        font-size: 1.2rem;
+    }
+
+    .data-table {
+        font-size: 0.8rem;
     }
 }
